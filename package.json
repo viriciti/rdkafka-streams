@@ -1,0 +1,23 @@
+{
+  "name": "rdkafka-streams",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "coffee --output build --compile src",
+    "test": "mocha --require coffeescript/register 'test/**/*.coffee'"
+  },
+  "dependencies": {
+    "as-array": "^2.0.0",
+    "async": "^2.6.0",
+    "debug": "^3.1.0",
+    "node-rdkafka": "^2.2.1",
+    "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "coffeescript": "^2.1.1",
+    "mocha": "^4.1.0"
+  },
+  "files": [
+    "build"
+  ]
+}
