@@ -35,7 +35,7 @@ const ps = new Producer({
 ps.write({ some: 'data' })
 ```
 ### Duplex
-```
+```javascript
 const { getDuplex } = require('rdkafka-streams')
 
 ts = new Transform({
