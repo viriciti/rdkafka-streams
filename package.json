@@ -1,7 +1,7 @@
 {
   "name": "rdkafka-streams",
   "description": "An alternative streams implementation for KafkaConsumer and Producer from https://github.com/Blizzard/node-rdkafka",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "main": "./build/index.js",
   "scripts": {
     "build": "coffee --output build --compile src",
@@ -15,6 +15,7 @@
     "as-array": "^2.0.0",
     "async": "^2.6.0",
     "debug": "^3.1.0",
+    "duplexify": "^3.5.1",
     "node-rdkafka": "^2.2.1",
     "underscore": "^1.8.3"
   },
