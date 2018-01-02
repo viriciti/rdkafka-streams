@@ -65,8 +65,8 @@ describe "getEventbus", ->
 		eb = getDuplex config
 
 		ts = new Transform objectMode: true, transform: (obj, enc, cb) ->
-			return (setTimeout cb, 1) if obj.value.source isnt "origin"
-			eb.destroy() if ++count is 500
+			return cb() if obj.value.source isnt "origin"
+			return eb.destroy() if ++count is 500
 
 			setTimeout ->
 				cb null, _.extend {}, obj.value, source: "transform"
