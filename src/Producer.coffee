@@ -54,7 +54,7 @@ class Producer extends Writable
 
 		pollLoop = =>
 			@pollTimeout = setTimeout =>
-				@producer.poll()
+				@producer.poll() if @producer.isConnected()
 				@emit "total-delivered", @total
 				debug "Total delivered:", @total
 			, 1000
