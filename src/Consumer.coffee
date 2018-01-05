@@ -143,6 +143,8 @@ class Consumer extends Readable
 		@isDestroyed = true
 
 		cleanUp = =>
+			debug "Cleaning up!"
+
 			@consumer.removeListener "event.log",    @onEventLog
 			@consumer.removeListener "disconnected", @onDisconnected
 			@consumer.removeListener "unsubscribe",  @onUnsubscribe
@@ -169,10 +171,12 @@ class Consumer extends Readable
 				cleanUp()
 			, 6000
 
-			@consumer.disconnect =>
-				clearTimeout timeout
-				debug "Stopped: Consumer disconnected"
-				done()
+			process.nextTick =>
+				debug "Stopping: Consumer disconnect..."
+				@consumer.disconnect =>
+					clearTimeout timeout
+					debug "Stopped: Consumer disconnected"
+					cleanUp()
 
 		disconnect()
 
