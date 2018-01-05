@@ -10,7 +10,6 @@ cs = null
 
 getConfig = ->
 	rnd = _.random 1, 10000000
-	rnd = 200
 
 	host:    "localhost:9092"
 	topic:   "test-topic-#{rnd}"
@@ -50,7 +49,7 @@ produceData = (options, amount = 100, cb) ->
 	poll()
 
 describe "Consumer", ->
-	describe.only "Flowing mode", ->
+	describe "Flowing mode", ->
 		config = getConfig()
 		total  = 100
 		count  = 0
