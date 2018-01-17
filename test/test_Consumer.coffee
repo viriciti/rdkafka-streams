@@ -6,16 +6,15 @@ pump          = require "pump"
 
 Consumer = require "../src/Consumer"
 
-p  = null
-cs = null
+cs    = null
+rnd   = _.random 1, 10000000
+topic = "test-topic-#{rnd}"
 
 getConfig = ->
-	rnd = _.random 1, 10000000
-
-	host:    "localhost:9092"
-	topic:   "test-topic-#{rnd}"
-	groupId: "test-groupId-#{rnd}"
-	# reset:   true
+	host:       "localhost:9092"
+	topic:      topic
+	groupId:    "test-groupId-#{rnd}"
+	fromOffset: "earliest"
 
 produceData = (options, amount = 100, cb) ->
 	cb = if cb then (_.once cb) else (->)
@@ -31,25 +30,15 @@ produceData = (options, amount = 100, cb) ->
 	p.on "delivery-report", (error, dr) -> total++
 
 	p.once "ready", ->
-		async.eachSeries [1..amount], (i, cb) ->
-			p.produce options.topic, null, Buffer.from JSON.stringify count: i, source: "origin"
-			setTimeout cb, 10
+		console.log "Producer ready"
+		setTimeout ->
+			async.eachSeries [1..amount], (i, cb) ->
+				process.stdout.write "#{i}, "
+				p.produce options.topic, null, Buffer.from JSON.stringify count: i, source: "origin"
+				setTimeout cb, 15
+		, 2000
 
 	p.connect()
-
-	poll = ->
-		timeout = setTimeout ->
-			p.poll()
-			poll()
-			console.log "total produced", total
-			if total is amount
-				clearTimeout timeout
-				cb()
-		, 1000
-		timeout.unref()
-
-
-	poll()
 
 describe "Consumer", ->
 	describe "Flowing mode", ->
@@ -61,20 +50,16 @@ describe "Consumer", ->
 			@timeout 60000
 			cs.destroy null, (error) ->
 				throw error if error
-
-				if p?.disconnect
-					p.disconnect done
-				else
-					done()
-
-		it "should start & buffer some data", (done) ->
-			@timeout 60000
-			cs = new Consumer config
-			cs.once "ready", ->
-				produceData config, total, done
+				done()
 
 		it "should get data", (done) ->
 			@timeout 60000
+
+			produceData config, total
+
+			count  = 0
+			config = getConfig()
+			cs     = new Consumer config
 
 			onData = (data) ->
 				if ++count is total
@@ -91,10 +76,12 @@ describe "Consumer", ->
 			@timeout 60000
 			cs.destroy null, (error) ->
 				throw error if error
-				done()
+				setTimeout done, 5000
 
 		it "should get data - fast consumer", (done) ->
 			@timeout 60000
+
+			produceData config, total
 
 			count  = 0
 			config = getConfig()
@@ -103,16 +90,17 @@ describe "Consumer", ->
 			pump [
 				cs
 				new Writable objectMode: true, write: (obj, enc, cb) ->
-					cs.destroy() if ++count is total
+					if ++count is total
+						cs.destroy()
 					setTimeout cb, 1
 			], (error) ->
 				throw error if error
 				done()
 
-			produceData config, total
-
 		it "should get data - slow consumer", (done) ->
 			@timeout 60000
+
+			produceData config, total
 
 			count  = 0
 			config = getConfig()
@@ -127,6 +115,3 @@ describe "Consumer", ->
 			], (error) ->
 				throw error if error
 				done()
-
-			produceData config, total
-

@@ -19,18 +19,19 @@ class Consumer extends Readable
 			throw new Error "No `#{attr}` in options" unless options[attr]
 
 		kafkaOptions =
-			# "debug":                  "all"
-			# "auto.offset.reset":       "earliest"
 			"group.id":                options.groupId
 			"metadata.broker.list":    options.host
-			"rebalance_cb":            true
 			"socket.keepalive.enable": true
+
+		kafkaOptions["auto.offset.reset"] = options.fromOffset if options.fromOffset
+		kafkaOptions["debug"]             = options.debug      if options.debug
 
 		debug "Kafka options", kafkaOptions
 
 		@consumer = Kafka.KafkaConsumer kafkaOptions
 
-		@onEventLog = (log) -> debug "log", log
+		@onEventLog = (log) ->
+			debug "log", log.severity, log.fac, log.message
 
 		@onDisconnected = =>
 			debug "Disconnected"
@@ -41,68 +42,43 @@ class Consumer extends Readable
 			@push null
 
 		@onReady = =>
-			debug "Ready"
 			@consumer.subscribe asArray options.topic
 			@_read()
-
-			@consumer.getMetadata {}, (error, meta) =>
-				return debug "Producer could not get topic meta data: #{error.message}" if error
-				meta.topics = _.filter meta.topics, (topic) -> topic.name is options.topic
-				debug "Topic metadata", util.inspect meta, depth: null
-				@emit "ready"
-
-		@onRebalance = (err, assignments) =>
-			partitions = _.chain assignments
-				.filter (a) => a.topic is options.topic
-				.pluck "partition"
-				.value()
-
-			debug "Rebalanced to:", partitions
-			@emit "partitions", partitions
-
-			@_read()
-
-		@onPartitions = (partitions) =>
-			offset = if Number.isInteger options.reset then options.reset else 0
-			debug "Resetting to offset #{offset} on partitions", partitions
-			async.each partitions, (partition, cb) =>
-				@consumer.seek
-					topic:     options.topic
-					partition: partition
-					offset:    offset
-				, 0, cb
-			, (error) =>
-				@emit "error", error if error
+			@emit "ready"
+			debug "Ready"
 
 		@consumer.on   "event.log",    @onEventLog
 		@consumer.once "disconnected", @onDisconnected
 		@consumer.once "unsubscribe",  @onUnsubscribe
 		@consumer.once "ready",        @onReady
-		@consumer.on   "rebalance",    @onRebalance
-		@once          "partitions",   @onPartitions if options.reset
 
 		@consumer.connect()
 
 	_read: (size = 16) ->
+		console.log "read 1"
 		return if @isDestroyed
+		console.log "read 2"
 
 		unless @consumer.isConnected()
 			debug "Not ready"
-			return
+			return @once "ready", => @_read size
 
+		console.log "read 3"
 		if @isBusy
 			# debug "Busy"
 			return
+		console.log "read 4"
 
 		debug "Read sequence: Started"
 
 		@isBusy = true
-		goOn    = true
 
-		test = => goOn and not @isDestroyed
+		test = => @isBusy
 
 		iteratee = (cb) =>
-			return cb() if @isDestroyed
+			if @isDestroyed or @_readableState.ended
+				@isBusy = false
+				return cb()
 
 			@consumer.consume size, (error, messages) =>
 				return cb error if error
@@ -124,23 +100,25 @@ class Consumer extends Readable
 
 					obj = _.extend {}, message, { value }
 
-					goOn = unless @isDestroyed
-						@push obj
-					else
-						false
+					if @isDestroyed or @_readableState.ended
+						@isBusy = false
+						return
+
+					@isBusy = @push obj
 
 				cb()
 
 		callback = (error) =>
 			@emit "error", error if error
 			debug "Read sequence: Stopped"
-			@isBusy = false
 
 		async.whilst test, iteratee, callback
 
 	_destroy: (error, cb) ->
 		return cb() if @isDestroyed
 		@isDestroyed = true
+
+		debug "Stopping"
 
 		cleanUp = =>
 			debug "Cleaning up!"
@@ -149,12 +127,9 @@ class Consumer extends Readable
 			@consumer.removeListener "disconnected", @onDisconnected
 			@consumer.removeListener "unsubscribe",  @onUnsubscribe
 			@consumer.removeListener "ready",        @onReady
-			@consumer.removeListener "rebalance",    @onRebalance
-			@removeListener          "partitions",   @onPartitions
 
 			cb?()
 
-		debug "Stopping"
 		disconnect = =>
 			if not @consumer._isConnecting and not @consumer._isConnected
 				debug "Stopped: Concumer not connecting and not connected"

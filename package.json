@@ -5,7 +5,7 @@
   "main": "./build/index.js",
   "scripts": {
     "build": "coffee --output build --compile src",
-    "test": "mocha --require coffeescript/register 'test/**/*.coffee'"
+    "test": "mocha --exit --require coffeescript/register 'test/**/*.coffee'"
   },
   "repository": {
     "type": "git",

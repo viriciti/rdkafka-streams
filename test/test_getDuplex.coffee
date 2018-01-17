@@ -10,10 +10,10 @@ pump          = require "pump"
 getConfig = ->
 	rnd = _.random 1, 10000000
 
-	host:    "localhost:9092"
-	topic:   "test-topic-#{rnd}"
-	groupId: "test-groupId-#{rnd}"
-	# reset:   true
+	host:       "localhost:9092"
+	topic:      "test-topic-#{rnd}"
+	groupId:    "test-groupId-#{rnd}"
+	fromOffset: "earliest"
 
 class Burst extends Readable
 	constructor: (@total) ->

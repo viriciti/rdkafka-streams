@@ -17,7 +17,6 @@ class Producer extends Writable
 
 		@total           = 0
 		@topic           = options.topic
-		@awaitPartitions = not not options.awaitPartitions
 		@isDestroyed     = false
 		kafkaOptions     =
 			"dr_cb":                true
@@ -69,14 +68,7 @@ class Producer extends Writable
 				debug "Connected"
 				@_write message, enc, cb
 
-		if @awaitPartitions
-			unless @partitions?.length
-				debug "No parttions yet"
-				return @once "partitions", =>
-					debug "Got partions"
-					@_write message, enc, cb
-
-		partition = if @partitions?.length then _.sample @partitions else null
+		partition = message.partition? or null
 
 		try
 			@producer.produce.apply @producer, [
@@ -95,6 +87,8 @@ class Producer extends Writable
 		cb()
 
 	_destroy: (error, cb) ->
+		debug "Destroy called"
+
 		clearTimeout @pollTimeout
 		return cb?() if @isDestroyed
 		@isDestroyed = true
@@ -122,11 +116,5 @@ class Producer extends Writable
 				cleanUp()
 
 		disconnect()
-
-	setPartitions: (partitions) =>
-		return unless partitions?.length
-		debug "Partitions", partitions
-		@partitions = partitions
-		@emit "partitions"
 
 module.exports = Producer
