@@ -55,19 +55,14 @@ class Consumer extends Readable
 		@consumer.connect()
 
 	_read: (size = 16) ->
-		console.log "read 1"
 		return if @isDestroyed
-		console.log "read 2"
 
 		unless @consumer.isConnected()
-			debug "Not ready"
 			return @once "ready", => @_read size
 
-		console.log "read 3"
 		if @isBusy
 			# debug "Busy"
 			return
-		console.log "read 4"
 
 		debug "Read sequence: Started"
 

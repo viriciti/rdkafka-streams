@@ -69,8 +69,12 @@ describe "Consumer", ->
 			cs.on "data", onData
 
 	describe "Back pressure mode", ->
+		config = getConfig()
 		total  = 100
 		count  = 0
+
+		beforeEach ->
+			config = getConfig()
 
 		afterEach (done) ->
 			@timeout 60000
