@@ -6,6 +6,7 @@ pump          = require "pump"
 
 Consumer = require "../src/Consumer"
 
+p  = null
 cs = null
 
 getConfig = ->
@@ -45,6 +46,8 @@ produceData = (options, amount = 100, cb) ->
 				clearTimeout timeout
 				cb()
 		, 1000
+		timeout.unref()
+
 
 	poll()
 
@@ -58,7 +61,11 @@ describe "Consumer", ->
 			@timeout 60000
 			cs.destroy null, (error) ->
 				throw error if error
-				done()
+
+				if p?.disconnect
+					p.disconnect done
+				else
+					done()
 
 		it "should start & buffer some data", (done) ->
 			@timeout 60000
@@ -96,8 +103,7 @@ describe "Consumer", ->
 			pump [
 				cs
 				new Writable objectMode: true, write: (obj, enc, cb) ->
-					if ++count is total
-						cs.destroy()
+					cs.destroy() if ++count is total
 					setTimeout cb, 1
 			], (error) ->
 				throw error if error
