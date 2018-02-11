@@ -16,7 +16,7 @@
     "async": "^2.6.0",
     "debug": "^3.1.0",
     "duplexify": "^3.5.1",
-    "node-rdkafka": "^2.2.1",
+    "node-rdkafka": "^2.2.2",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
